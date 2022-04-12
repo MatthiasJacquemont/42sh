@@ -91,9 +91,6 @@ then echo a;echo b; echo c; fi"
 
     # WEEK2
     "for j in 1 2 3 4 5; do echo \"salut\"; done"
-    #"while [ \$i -lt 5 ]; do echo hehe; i=\$((\$i + 1)); done"
-    #"until [ \$i -lt 5 ]; do echo hehe; i=\$((\$i + 1)); done"
-    #"until [ 0 -lt 5 ]; do echo hehe; i=\$((\$i + 1)); done"
     "! echo 1"
     "echo 1; ! echo 2"
     "! echo 1; echo 2"
@@ -107,9 +104,6 @@ then echo a;echo b; echo c; fi"
 
     "echo \$i"
     "i=5; echo \\$i"
-    #"i=0; while [ \\$i -lt 5 ]; do echo \\$i; i=9; done"
-    #"i=0; until [ \\$i -lt 5 ]; do echo \\$i; i=9; done"
-    #"i=0; until [ \\$i -lt 5 ]; do echo \\$i; i=9; done"
 
     #AS SCRIPT
     "tests"

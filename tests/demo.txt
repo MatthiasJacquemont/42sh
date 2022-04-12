@@ -1,0 +1,45 @@
+PACKAGE MANGAGEMENT
+
+To add the packages with pip:
+
+1. python -m venv env/
+2. source env/bin/activate
+3. pip install termcolor                  //needed for the green and red color
+4. pip install pyyaml
+
+then when you don't need the package anymore enter the following command
+
+5. deactivate
+
+_______________________________________________________________________________
+
+USAGE OF THE TESTSUITE
+
+to execute the testsuite
+
+python test_suite.py --binary <our binary 42sh>
+
+The tests.yml file must in the same current directory
+
+_______________________________________________________________________________
+
+ADDING TESTS
+
+To add test to the yaml file
+
+Example:
+
+- name: Name of the test
+  input: echo Salut
+
+For input of mutliple lines simply add | at the begining of the input
+
+Example:
+
+- name: Name of the test
+  input: |
+    if [ "$var" -eq 3 ]; then
+        echo "Value is 3"
+    else
+        echo "Value is different from 3"
+    fi

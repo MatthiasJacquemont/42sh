@@ -1,0 +1,3 @@
+if echo salut; then
+    echo est true
+fi

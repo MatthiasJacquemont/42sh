@@ -1,0 +1,10 @@
+dede=12;
+matthias=$dede
+
+echo $matthias salut
+
+echo et au passe pk pas moi aussi
+
+if echo lui; then
+    echo moi aussi;
+fi

@@ -1,0 +1,10 @@
+if
+        echo 1
+        ! echo 2
+then
+        echo 3
+        echo 4
+else
+        echo 5
+        echo 6
+fi

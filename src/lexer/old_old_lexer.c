@@ -1,0 +1,239 @@
+#include <ctype.h>
+#include <fnmatch.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../free_ast.h"
+#include "lexer.h"
+
+/* ========================================================================== **
+** --------------------- Creates a token from a string ---------------------- **
+** ========================================================================== */
+
+struct token get_token(char *str, char next_char, struct general *general)
+{
+    struct token tok = { .str = "", .type = WORD };
+    if (!str)
+        return tok;
+
+    char *name = my_calloc(strlen(str) + 2, 1, general);
+    strcpy(name, str);
+
+    tok.str = name;
+
+    static struct token models[] = {
+        { "if", IF },           { "then", THEN },   { "elif", ELIF },
+        { "else", ELSE },       { "fi", FI },       { ";", SEMICOLON },
+        { "for", FOR },         { "while", WHILE }, { "do", DO },
+        { "done", DONE },       { "until", UNTIL }, { "!", NOT },
+        { "&&", AND },          { "||", OR },       { "{", BRACKET_OPEN },
+        { "}", BRACKET_CLOSE }, { "\n", EOL }
+    };
+    // { "'", S_QUOTE } };
+
+    for (unsigned i = 0; i < (sizeof(models) / sizeof(*models)); i++)
+    {
+        // if (strcmp(models[i].str, str) == 0 && (isspace(next_char) ||
+        // next_char == ';' || next_char == 0))
+        if (fnmatch(models[i].str, str, 0) == 0
+            && (isspace(next_char) || next_char == ';' || next_char == 0))
+        {
+            tok.type = models[i].type;
+            break;
+        }
+    }
+
+    return tok;
+}
+
+/* ========================================================================== **
+** ----------------------- Testing for '&&' and '||' ------------------------ **
+** ========================================================================== */
+
+int and_or(char *str, int index)
+{
+    if (str[index + 1] == '&' && str[index + 2] == '&')
+        return 1;
+    if (str[index + 1] == '|' && str[index + 2] == '|')
+        return 1;
+    return 0;
+}
+
+/* ========================================================================== **
+** ---------------------------- Skipping Spaces ----------------------------- **
+** ========================================================================== */
+
+int skip_spaces(char **str, char stop, int scoping)
+{
+    int cont = 0;
+    while (**str == ' ' && scoping <= 1 && stop == '\0')
+    {
+        cont = 1;
+        (*str)++;
+    }
+
+    return cont;
+}
+
+/* ========================================================================== **
+** --------------------------------- Scoping -------------------------------- **
+** ========================================================================== */
+
+void update_scoping(int *scoping, char *current_token, char stop)
+{
+    if ((fnmatch("[ ;]*if[ ;]", current_token, 0) == 0
+         || fnmatch("[ ;]*if[ ;]", current_token, 0) == 0)
+        && stop == '\0')
+        scoping++;
+    if ((fnmatch("[ ;]*fi[ ;]", current_token, 0) == 0
+         || fnmatch("[ ;]*fi[ ;]", current_token, 0) == 0)
+        && stop == '\0')
+        scoping--;
+}
+
+/* ========================================================================== **
+** --------- The lexer, returning an array of tokens from a string  --------- **
+** ========================================================================== */
+
+struct token *lexer(char *str, struct general *general)
+{
+    if (!str || strlen(str) <= 0)
+    {
+        my_free(str, general);
+        return NULL;
+    }
+
+    struct token *tokens =
+        my_calloc(strlen(str) + 1, sizeof(struct token), general);
+    if (!tokens)
+    {
+        my_free(str, general);
+        return NULL;
+    }
+
+    int str_index = 0;
+    int tok_index = 0;
+    int cat_index = 0;
+
+    char stop = '\0';
+    char *current_token = my_calloc(strlen(str) + 1, 1, general);
+    char current;
+
+    int scoping = 0;
+
+    while ((current = str[str_index]) != '\0')
+    {
+        if ((current == '\'' || current == '\"') && scoping < 2)
+        {
+            stop = ((current == '\'' && stop == '\'') ? '\0' : '\'');
+            stop = ((current == '\"' && stop == '\"') ? '\0' : '\"');
+            current_token[cat_index++] = current;
+            current = str[++str_index];
+        }
+        if (skip_spaces(&str, stop, scoping))
+            continue;
+
+        struct token tok = get_token(current_token, str[str_index], general);
+
+        /*
+        if ((tok.type == IF || tok.type == WHILE || tok.type == UNTIL)
+            // && stop != '\'')
+            && stop == '\0')
+            scoping++;
+        else if (str[str_index] == '{' && stop == '\0') // stop != '\'')
+        {
+            str_index++;
+            scoping += 2;
+            continue;
+        }
+        else if ((str[str_index] == ';' || str[str_index] == ' ') &&
+        str[str_index + 1] == 'f' && str[str_index + 2] == 'i') scoping--; else
+        if ((str[str_index] == ';' || str[str_index] == ' ') && str[str_index +
+        1] == 'n' && str[str_index + 2] == 'e'
+                 && current_token[strlen(current_token)] == 'o' &&
+        current_token[strlen(current_token) - 1] == 'd'
+            )
+            scoping--;
+        else if (str[str_index] == '}' && stop == '\0') // stop != '\'')
+        {
+            str_index++;
+            scoping -= 2;
+            continue;
+        }
+        */
+        update_scoping(&scoping, current_token, stop);
+
+        if (skip_spaces(&str, stop, scoping))
+            continue;
+
+        if (((tok.type != WORD && tok.type != NOT) || current == ';'
+             || and_or(str, str_index))
+            && stop == '\0' && scoping < 2)
+        // && stop != '\'' && scoping < 2)
+        {
+            tokens[tok_index++] =
+                get_token(current_token, str[str_index], general);
+            memset(current_token, 0, strlen(str) + 1);
+            cat_index = 0;
+
+            while (current == ' ' || current == ';')
+                current = str[++str_index];
+            my_free(tok.str, general);
+            continue;
+        }
+        else
+            my_free(tok.str, general);
+        if (skip_spaces(&str, stop, scoping))
+            continue;
+
+        current_token[cat_index++] = current;
+        str_index++;
+    }
+
+    if (strlen(current_token) > 0)
+    {
+        struct token tok = get_token(current_token, str[str_index], general);
+        if (tok.type == FI && stop != '\'')
+            --scoping;
+        tokens[tok_index++] = tok;
+    }
+    my_free(current_token, general);
+
+    my_free(str, general);
+    return tokens;
+}
+
+/* ========================================================================== **
+** ---------------- The old main function used for debugging ---------------- **
+** ========================================================================== */
+
+/*
+int main(int argc, char *argv[])
+{
+    char *str_arg = "if echo Ceci est une condition toujours vraie; echo Ici
+aussi; then echo Ceci sera toujours execute; else echo Ceci ne sera jamais
+execute; fi"; if (argc > 1) str_arg = argv[1];
+
+    char *str = my_calloc(1, strlen(str_arg) + 1, general);
+    strcpy(str, str_arg);
+
+    struct token *arr = lexer(str);
+
+    printf("Array :\n");
+    struct token *ptr = arr;
+    if (!ptr)
+        printf("\tNULL\n");
+
+    while (ptr && ptr->str)
+    {
+        (ptr->type == EOL) ?
+            printf("\t-> EOL (%d)\n", ptr->type) :
+            printf("\t-> '%s' (%d)\n", ptr->str, ptr->type);
+        free(ptr->str);
+        ptr++;
+    }
+
+    free(arr);
+}
+*/
